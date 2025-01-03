@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dynamic Task Scheduler</title>
+    <link href="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://code.jquery.com/ui/1.12.1/themes/base/jquery-ui.css" rel="stylesheet">
+    <style>
+        .schedule-board {
+            margin: 20px;
+            display: flex;
+        }
+
+        .resource-column {
+            width: 120px;
+            font-weight: bold;
+            text-align: center;
+        }
+
+        .resource-slot {
+            height: 100px;
+            border: 1px solid #ddd;
+            position: relative;
+        }
+
+        .task {
+            background-color: #28a745;
+            color: white;
+            padding: 10px;
+            margin-bottom: 10px;
+            cursor: move;
+            text-align: center;
+            position: relative;
+        }
+
+        .tasks {
+            margin-left: 40px;
+        }
+
+        .tasks h4 {
+            margin-left: 40px;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container-fluid schedule-board">
+        <div class="calendar-section">
+            <table class="table table-bordered">
+                <thead>
+                    <tr>
+                        <th class="resource-column">Resources</th>
+                        <th>Monday</th>
+                        <th>Tuesday</th>
+                        <th>Wednesday</th>
+                        <th>Thursday</th>
+                        <th>Friday</th>
+                    </tr>
+                </thead>
+                <tbody id="time-slots">
+                    <!-- Time slots and resources will be generated dynamically -->
+                </tbody>
+            </table>
+        </div>
+        <div class="tasks">
+            <h4>Tasks</h4>
+            <div id="task-container">
+                <!-- Tasks will be populated dynamically -->
+            </div>
+        </div>
+    </div>
+
+    <script src="https://code.jquery.com/jquery-3.5.1.min.js"></script>
+    <script src="https://code.jquery.com/ui/1.12.1/jquery-ui.min.js"></script>
+    <script>
+        // Example data fetching function (replace with Power Apps data)
+        function getDataFromPowerApps() {
+            const contacts = JSON.parse(window.PowerApps.getContacts());
+            const tasks = JSON.parse(window.PowerApps.getTasks());
+
+            return { contacts, tasks };
+        }
+
+        function renderResources(contacts) {
+            const tableBody = $('#time-slots');
+            tableBody.empty();
+
+            contacts.forEach(contact => {
+                const row = $('<tr></tr>');
+                row.append(`<td class="resource-column">${contact.name}</td>`);
+
+                for (let i = 0; i < 5; i++) {
+                    row.append(`<td class="resource-slot" data-contact-id="${contact.id}" data-day="${i}"></td>`);
+                }
+                tableBody.append(row);
+            });
+
+            $(".resource-slot").droppable({
+                accept: ".task",
+                drop: function (event, ui) {
+                    const $task = $(ui.draggable);
+                    const taskId = $task.data('task-id');
+                    const contactId = $(this).data('contact-id');
+                    const day = $(this).data('day');
+
+                    // Save to PowerApps (example API)
+                    window.PowerApps.saveAssignment(taskId, contactId, day);
+                }
+            });
+        }
+
+        function renderTasks(tasks) {
+            const taskContainer = $('#task-container');
+            taskContainer.empty();
+
+            tasks.forEach(task => {
+                const taskDiv = $(`<div class="task" data-task-id="${task.id}">${task.name}</div>`);
+                taskContainer.append(taskDiv);
+            });
+
+            $(".task").draggable({
+                helper: "clone",
+                start: function (event, ui) { ui.helper.addClass("dragging"); },
+                stop: function (event, ui) { ui.helper.removeClass("dragging"); }
+            });
+        }
+
+        $(document).ready(() => {
+            const { contacts, tasks } = getDataFromPowerApps();
+            renderResources(contacts);
+            renderTasks(tasks);
+        });
+    </script>
+</body>
+
+</html>
